@@ -68,7 +68,27 @@ final class KeyAndValue {
 	}
 }
 
-final class SignedNumbers {
+final class NumbersWithSign {
+	@Test
+	public void positiveZero() {
+		var expected = List.of(
+				new Token(1, Token.Type.PLUS, 1, 1),
+				new Token(1, Token.Type.NUMBER, 1, 2)
+		);
+
+		assertEquals(expected, Token.tokenize("+0").tokens());
+	}
+
+	@Test
+	public void negativeZero() {
+		var expected = List.of(
+				new Token(1, Token.Type.MINUS, 1, 1),
+				new Token(1, Token.Type.NUMBER, 1, 2)
+		);
+
+		assertEquals(expected, Token.tokenize("-0").tokens());
+	}
+
 	@Disabled("Not implemented")
 	@Test
 	public void positiveSignedNumber() {
@@ -79,5 +99,25 @@ final class SignedNumbers {
 		);
 
 		assertEquals(expected, Token.tokenize("meaning_of_life: +42").tokens());
+	}
+}
+
+final class NumbersWithoutSign {
+	@Test
+	public void zero() {
+		var expected = List.of(
+				new Token(1, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("0").tokens());
+	}
+
+	@Test
+	public void five() {
+		var expected = List.of(
+				new Token(1, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("5").tokens());
 	}
 }

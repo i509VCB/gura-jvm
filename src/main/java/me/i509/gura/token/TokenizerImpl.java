@@ -229,7 +229,7 @@ final class TokenizerImpl {
 			case '9':
 			// "inf" and "nan" are handled as identifiers and interpreted at parse time.
 			{
-				if (cursor.remaining() == 0) {
+				if (cursor.remaining() <= 1) {
 					// Just an integer
 					Token token = new Token(1, Token.Type.NUMBER, cursor.line, cursor.column);
 
