@@ -105,7 +105,7 @@ public final class Token {
 		SPACE_WS,
 
 		/**
-		 * Tab character whitespace.
+		 * Tab character whitespace
 		 */
 		TAB_WS,
 
@@ -120,21 +120,16 @@ public final class Token {
 		COMMENT,
 
 		/**
-		 * The key half of a key-value pair.
+		 * The key of an object entry, a keyword such as "import" or "empty".
  		 */
-		KEY,
+		IDENTIFIER,
 
 		/**
 		 * A floating point or integer number with a specified sign.
-		 */
-		INTEGER_OR_FLOATING_WITH_SIGN,
-
-		/**
-		 * A value of an undetermined type or an import.
 		 *
-		 * <p>The type of this value may be one of the following: null, integer, floating point number, boolean, empty value,
+		 * <p>This may also be interpreted as an {@link #IDENTIFIER} in some scenarios.
 		 */
-		VALUE_OR_IMPORT,
+		NUMBER,
 
 		/**
 		 * A basic string value to a key.
@@ -142,29 +137,21 @@ public final class Token {
 		BASIC_STRING_VALUE,
 
 		/**
-		 * A multiline string value to a key.
-		 */
-		MULTILINE_STRING_VALUE,
-
-		/**
 		 * A literal string value to a key.
 		 */
 		LITERAL_STRING_VALUE,
 
 		/**
-		 * A multiline literal string value to a key.
+		 * Used to represent the start of an array value.
 		 */
-		MULTILINE_LITERAL_STRING_VALUE,
+		LEFT_BRACKET,
 
 		/**
-		 * The start of an array value.
+		 * Used to represent the end of an array value.
 		 */
-		ARRAY_START,
+		RIGHT_BRACKET,
 
-		/**
-		 * The end of an array value.
-		 */
-		ARRAY_END,
+		COLON,
 
 		/**
 		 * A comma separating array entries.
@@ -177,7 +164,7 @@ public final class Token {
 		EOF,
 
 		/**
-		 * An unknown, invalid token.
+		 * An unknown, invalid token type.
 		 */
 		UNKNOWN;
 

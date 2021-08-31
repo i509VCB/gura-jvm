@@ -1,5 +1,6 @@
 plugins {
     java
+    `java-library`
 }
 
 group = "org.example"
@@ -10,6 +11,8 @@ repositories {
 }
 
 dependencies {
+    compileOnlyApi("org.jetbrains:annotations:22.0.0")
+
     testImplementation(platform("org.junit:junit-bom:5.7.2"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }

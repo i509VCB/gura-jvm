@@ -12,9 +12,13 @@ final class TokenizerImpl {
 		Cursor cursor = new Cursor(content);
 
 		while (true) {
-			if (!nextToken(cursor, tokens, true)) {
+			Token nextToken;
+
+			if ((nextToken = nextToken(cursor, true)) == null) {
 				break;
 			}
+
+			tokens.add(nextToken);
 		}
 
 		return new TokenizationResult(tokens);
@@ -24,26 +28,21 @@ final class TokenizerImpl {
 	 * Reads the next token in the file.
 	 *
 	 * @param cursor the cursor tracking the current position in the content of the file
-	 * @param output the output to return tokens to
-	 * @param consume whether the cursor should be advanced and the token added to the output list
-	 * @return true if there are any more tokens
+	 * @param advanceCursor whether the cursor should be advanced after obtaining a token
+	 * @return the next token or null
 	 */
-	static boolean nextToken(Cursor cursor, List<Token> output, boolean consume) {
+	// TODO: Nullable
+	static Token nextToken(Cursor cursor, boolean advanceCursor) {
 		/*
-		 * Tokenizing occurs in a three steps:
+		 * Tokenizing occurs in a two steps:
 		 *
 		 * 1. Peek forward to determine the type of token.
 		 * 2. Determine type of token, and move the cursor if we are consuming.
-		 * 3. Peek forward to determine if we have another token after the token that was just consumed.
 		 */
 
 		// End of content.
 		if (cursor.remaining() == 0) {
-			if (consume) {
-				output.add(new Token(0, Token.Type.NEWLINE, cursor.line, cursor.column));
-			}
-
-			return false;
+			return null;
 		}
 
 		Character c = cursor.peek();
@@ -52,108 +51,138 @@ final class TokenizerImpl {
 		// Narrow down the type of token
 		switch (c) {
 			// Space whitespace
-			case ' ':
-				if (consume) {
-					int length = 1;
+			case ' ': {
+				int length = 1;
 
-					while (cursor.remaining() > length) {
-						Character next = cursor.peekBy(length);
-						assert next != null;
+				while (cursor.remaining() > length) {
+					Character next = cursor.peekBy(length);
+					assert next != null;
 
-						if (next != ' ') {
-							break;
-						}
-
-						length++;
+					if (next != ' ') {
+						break;
 					}
 
-					output.add(new Token(length, Token.Type.SPACE_WS, cursor.line, cursor.column));
+					length++;
+				}
+
+				Token token = new Token(length, Token.Type.SPACE_WS, cursor.line, cursor.column);
+
+				if (advanceCursor) {
 					cursor.advanceBy(length);
 				}
 
-				break;
+				return token;
+			}
 
 			// Tab whitespace
 			case '\t':
 				throw new UnsupportedOperationException("TODO");
 
 			// Open an array
-			case '[':
-				if (consume) {
-					output.add(new Token(1, Token.Type.ARRAY_START, cursor.line, cursor.column));
+			case '[': {
+				if (advanceCursor) {
 					cursor.advanceBy(1);
 				}
 
-				break;
+				return new Token(1, Token.Type.LEFT_BRACKET, cursor.line, cursor.column);
+			}
 
 			// Close an array
-			case ']':
-				if (consume) {
-					output.add(new Token(1, Token.Type.ARRAY_END, cursor.line, cursor.column));
+			case ']': {
+				if (advanceCursor) {
 					cursor.advanceBy(1);
 				}
 
-				break;
+				return new Token(1, Token.Type.RIGHT_BRACKET, cursor.line, cursor.column);
+			}
 
 			// Comma separating entries in an array
-			case ',':
-				if (consume) {
-					output.add(new Token(1, Token.Type.COMMA, cursor.line, cursor.column));
+			case ',': {
+				if (advanceCursor) {
 					cursor.advanceBy(1);
 				}
 
-				break;
+				return new Token(1, Token.Type.COMMA, cursor.line, cursor.column);
+			}
 
 			// Comment
-			case '#':
-				if (consume) {
-					int length = 1;
+			case '#': {
+				int length = 1;
 
-					while (cursor.remaining() > length) {
-						Character next = cursor.peekBy(length);
-						assert next != null;
+				while (cursor.remaining() > length) {
+					Character next = cursor.peekBy(length);
+					assert next != null;
 
-						// Find the start of the newline and terminate once encountered.
-						if (next == '\n' || next == '\r') {
-							break;
-						}
-
-						length++;
+					// Find the start of the newline and terminate once encountered.
+					if (next == '\n' || next == '\r') {
+						break;
 					}
 
-					output.add(new Token(length, Token.Type.COMMA, cursor.line, cursor.column));
+					length++;
+				}
+
+				Token token = new Token(length, Token.Type.COMMA, cursor.line, cursor.column);
+
+				if (advanceCursor) {
 					cursor.advanceBy(length);
 				}
 
-				break;
+				return token;
+			}
 
 			// Literal string
-			case '\'':
+			case '\'': {
 				throw new UnsupportedOperationException("TODO");
+			}
 
-			// Basic string
-			case '"':
+			// String
+			case '"': {
 				throw new UnsupportedOperationException("TODO");
+			}
 
-			// An integer or a floating point number
-			case '-':
-			case '+':
-				throw new UnsupportedOperationException("TODO");
+			case ':': {
+				Token token = new Token(1, Token.Type.COLON, cursor.line, cursor.column);
+
+				if (advanceCursor) {
+					cursor.advanceBy(1);
+				}
+
+				return token;
+			}
 
 			// Unix style line ending
-			case '\n':
-				if (consume) {
-					output.add(new Token(1, Token.Type.NEWLINE, cursor.line, cursor.column));
+			case '\n': {
+				Token token = new Token(1, Token.Type.NEWLINE, cursor.line, cursor.column);
 
+				if (advanceCursor) {
 					cursor.cursor++;
 					cursor.line++;
 					cursor.column = 1;
 				}
 
-				break;
+				return token;
+			}
+
+			// An integer or a floating point number
+			case '-':
+			case '+':
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9': {
+				throw new UnsupportedOperationException("TODO");
+			}
+
+			// The number we were looking at is likely not a number, fall-through to tokenize as an identifier.
 
 			// Windows style line ending
-			case '\r':
+			case '\r': {
 				// There is another character following this `\r`, is it a `\n`?
 				if (cursor.remaining() > 1) {
 					Character next = cursor.peekBy(1);
@@ -161,74 +190,64 @@ final class TokenizerImpl {
 
 					// Next character must be `\n` for this to be a valid Windows line ending.
 					if (next == '\n') {
-						if (consume) {
-							output.add(new Token(2, Token.Type.NEWLINE, cursor.line, cursor.column));
+						Token token = new Token(2, Token.Type.NEWLINE, cursor.line, cursor.column);
 
+						if (advanceCursor) {
 							cursor.cursor += 2; // `\r\n` is 2 characters long.
 							cursor.line++;
 							cursor.column = 1;
 						}
 
-						break;
+						return token;
 					}
 				}
+			}
 
 			// Fall-through on only a `\r` with no following `\n` to the default case.
 
 			default:
-				// One of the following:
-				// - A variable or environment variable, key or value (any type or empty).
-				// - An import
-				// - Declaration of a field in an object
-				// - An invalid token
+				// If we reach here, we have one of the following:
+				// Some sort of keyword, such as "import" and "empty"
+				// An invalid number, such as a number with invalid characters.
+				// Some sort of identifier, such as the key in a key value entry.
+				// Some sort of invalid characters in the file.
 
-				if (consume) {
-					// Peek forward till we reach a `:`, whitespace, comment, end of line or end of file
-					Token.Type tokenType = null;
-					int length = 1;
+				// Validate the character a valid Gura character?
+				// TODO: return INVALID if this is not a valid character
 
-					while (cursor.remaining() > length) {
-						Character next = cursor.peekBy(length);
-						assert next != null;
+				// Peek forward until we find a token type which differs from an identifier.
+				// Store past position of the cursor for length cursor state
+				int previousRawCursor = cursor.cursor;
+				int line = cursor.line;
+				int column = cursor.column;
 
-						switch (next) {
-							case ':':
-								tokenType = Token.Type.KEY;
-								// Consume the colon also
-								length++;
-								break;
-							case '\n':
-							case '\r':
-							case '#':
-							case ' ':
-								tokenType = Token.Type.VALUE_OR_IMPORT;
-								break;
-						}
+				Token nextToken;
 
-						if (tokenType != null) {
-							break;
-						}
+				// do while loop here is intentional since we want to advance the cursor and then check the exit condition
+				do {
+					// Still an identifier, advance the cursor again.
+					cursor.advanceBy(1);
+				} while ((nextToken = nextToken(cursor, false)) != null && nextToken.type() == Token.Type.IDENTIFIER);
 
-						length++;
-					}
+				// We have either reached the end of the file or the next token is not an identifier, so we can end this
+				// token.
 
-					// Finish up the last value as a value or import since it never terminated.
-					if (tokenType == null) {
-						tokenType = Token.Type.VALUE_OR_IMPORT;
-					}
+				Token token = new Token(
+						cursor.cursor - previousRawCursor, // Length of the token
+						Token.Type.IDENTIFIER,
+						line, // Use start line and column
+						column
+				);
 
-					output.add(new Token(length, tokenType, cursor.line, cursor.column));
-					cursor.advanceBy(length);
+				if (!advanceCursor) {
+					// Roll back the cursor state since we are not advancing the cursor
+					cursor.cursor = previousRawCursor;
+					cursor.line = line;
+					cursor.column = column;
 				}
-		}
 
-		// Post-parse: if we are consuming does the next token exist?
-		if (consume) {
-			// Use peek mode to determine if we have another next token.
-			return nextToken(cursor, output, false);
+				return token;
 		}
-
-		return true;
 	}
 
 	private TokenizerImpl() {}
