@@ -3,6 +3,7 @@ package me.i509.gura.token;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.StringJoiner;
 
 public final class TokenizationResult {
 	private final List<Token> tokens;
@@ -56,6 +57,9 @@ public final class TokenizationResult {
 
 	@Override
 	public String toString() {
-		return String.format("TokenizationResult{valid=%s, tokens=%s}", this.success(), this.tokens);
+		return new StringJoiner(",", TokenizationResult.class.getSimpleName() + "[", "]")
+				.add("valid=" + this.success())
+				.add("tokens=" + this.tokens)
+				.toString();
 	}
 }

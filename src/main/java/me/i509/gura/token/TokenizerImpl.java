@@ -25,6 +25,37 @@ final class TokenizerImpl {
 	}
 
 	/**
+	 * @param c the character
+	 * @return true if the character may be part of the encoding base or digits of a number
+	 */
+	static boolean isValidEncodingBaseOrNumberDigit(char c) {
+		return (c >= '0' && c <= '9')
+				|| c == 'b' // Binary
+				|| c == 'o' // Octal
+				|| c == 'x' // Hexadecimal
+				|| c == 'e' // Exponent
+				|| c == 'E' // 0e6 is a redundant but still valid floating point value
+				|| c == '.' // Decimal point
+				|| c == '+' // Sign of an exponent
+				|| c == '-'
+				|| c == '_'; // Spacing
+	}
+
+	/**
+	 * @param c the character
+	 * @return true if the character may be part of the latter digits of a regular number or hexadecimal number
+	 */
+	static boolean isValidNumberOrHexadecimalDigit(char c) {
+		return (c >= '0' && c <= '9')
+				|| (c >= 'a' && c <= 'f') // Exponents also get covered within this range
+				|| (c >= 'A' && c <= 'F')
+				|| c == '.' // Decimal point
+				|| c == '+' // Possibly the sign of the exponent
+				|| c == '-'
+				|| c == '_'; // Spacing;
+	}
+
+	/**
 	 * Reads the next token in the file.
 	 *
 	 * @param cursor the cursor tracking the current position in the content of the file
@@ -164,8 +195,28 @@ final class TokenizerImpl {
 			}
 
 			// An integer or a floating point number
-			case '-':
-			case '+':
+			//
+			// Must start with a sign or number character
+			case '-': {
+				Token token = new Token(1, Token.Type.MINUS, cursor.line, cursor.column);
+
+				if (advanceCursor) {
+					cursor.advanceBy(1);
+				}
+
+				return token;
+			}
+
+			case '+': {
+				Token token = new Token(1, Token.Type.PLUS, cursor.line, cursor.column);
+
+				if (advanceCursor) {
+					cursor.advanceBy(1);
+				}
+
+				return token;
+			}
+
 			case '0':
 			case '1':
 			case '2':
@@ -175,8 +226,36 @@ final class TokenizerImpl {
 			case '6':
 			case '7':
 			case '8':
-			case '9': {
-				throw new UnsupportedOperationException("TODO");
+			case '9':
+			// "inf" and "nan" are handled as identifiers and interpreted at parse time.
+			{
+				if (cursor.remaining() == 0) {
+					// Just an integer
+					Token token = new Token(1, Token.Type.NUMBER, cursor.line, cursor.column);
+
+					if (advanceCursor) {
+						cursor.advanceBy(1);
+					}
+
+					return token;
+				}
+
+				boolean firstCharacterIsZero = c == '0';
+
+				if (firstCharacterIsZero) {
+					// Try to parse encoding base
+					Character next = cursor.peekBy(1);
+					assert next != null;
+
+					if (isValidEncodingBaseOrNumberDigit(next)) {
+						throw new UnsupportedOperationException("TODO: Peek forward until the type of token changes.");
+					}
+
+					// fall-through since this is not a valid number.
+				} else {
+					// Parse till we no longer encounter numerical characters.
+					throw new UnsupportedOperationException("TODO");
+				}
 			}
 
 			// The number we were looking at is likely not a number, fall-through to tokenize as an identifier.
@@ -207,7 +286,7 @@ final class TokenizerImpl {
 
 			default:
 				// If we reach here, we have one of the following:
-				// Some sort of keyword, such as "import" and "empty"
+				// Some sort of keyword, such as "import", "empty", "inf", "nan"
 				// An invalid number, such as a number with invalid characters.
 				// Some sort of identifier, such as the key in a key value entry.
 				// Some sort of invalid characters in the file.
@@ -225,7 +304,6 @@ final class TokenizerImpl {
 
 				// do while loop here is intentional since we want to advance the cursor and then check the exit condition
 				do {
-					// Still an identifier, advance the cursor again.
 					cursor.advanceBy(1);
 				} while ((nextToken = nextToken(cursor, false)) != null && nextToken.type() == Token.Type.IDENTIFIER);
 

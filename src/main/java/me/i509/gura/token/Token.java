@@ -124,6 +124,10 @@ public final class Token {
  		 */
 		IDENTIFIER,
 
+		MINUS,
+
+		PLUS,
+
 		/**
 		 * A floating point or integer number with a specified sign.
 		 *
