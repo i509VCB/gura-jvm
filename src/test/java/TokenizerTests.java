@@ -37,10 +37,10 @@ final class KeyAndValue {
 				new Token(4, Token.Type.IDENTIFIER, 1, 1),
 				new Token(1, Token.Type.COLON, 1, 5),
 				new Token(1, Token.Type.SPACE_WS, 1, 6),
-				new Token(5, Token.Type.IDENTIFIER, 1, 7)
+				new Token(4, Token.Type.IDENTIFIER, 1, 7)
 		);
 
-		assertEquals(expected, Token.tokenize("$key: value").tokens());
+		assertEquals(expected, Token.tokenize("$key: null").tokens());
 	}
 
 	@Test
@@ -93,12 +93,11 @@ final class NumbersWithSign {
 	@Test
 	public void positiveSignedNumber() {
 		var expected = List.of(
-				new Token(16, Token.Type.IDENTIFIER, 1, 1),
-				new Token(1, Token.Type.SPACE_WS, 1, 17),
-				new Token(3, Token.Type.NUMBER, 1, 18)
+				new Token(1, Token.Type.PLUS, 1, 1),
+				new Token(3, Token.Type.NUMBER, 1, 2)
 		);
 
-		assertEquals(expected, Token.tokenize("meaning_of_life: +42").tokens());
+		assertEquals(expected, Token.tokenize("+42").tokens());
 	}
 }
 
@@ -119,5 +118,67 @@ final class NumbersWithoutSign {
 		);
 
 		assertEquals(expected, Token.tokenize("5").tokens());
+	}
+
+	@Test
+	public void deadbeef() {
+		var expected = List.of(
+				new Token(10, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("0xDEADBEEF").tokens());
+	}
+
+	@Test
+	public void deadbeefFollowedByWs() {
+		var expected = List.of(
+				new Token(10, Token.Type.NUMBER, 1, 1),
+				new Token(1, Token.Type.SPACE_WS, 1, 11)
+		);
+
+		assertEquals(expected, Token.tokenize("0xDEADBEEF ").tokens());
+	}
+
+	@Test
+	public void octal() {
+		var expected = List.of(
+				new Token(5, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("0o666").tokens());
+	}
+
+	@Test
+	public void binary() {
+		var expected = List.of(
+				new Token(6, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("0b1001").tokens());
+	}
+
+	@Disabled("Plain numbers not implemented yet")
+	@Test
+	public void fiveHundredAndNine() {
+		var expected = List.of(
+				new Token(3, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("509").tokens());
+	}
+
+	/**
+	 * Attempt to parse a number with an incomplete encoding base.
+	 *
+	 * <p>For the purposes of tokenizing, we treat a number with an incomplete encoding base as a number and deal with
+	 * errors at parse time.
+	 */
+	@Test
+	public void incompleteEncodingBase() {
+		var expected = List.of(
+				new Token(2, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("0x").tokens());
 	}
 }

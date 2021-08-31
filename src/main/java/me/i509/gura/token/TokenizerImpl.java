@@ -45,13 +45,10 @@ final class TokenizerImpl {
 	 * @param c the character
 	 * @return true if the character may be part of the latter digits of a regular number or hexadecimal number
 	 */
-	static boolean isValidNumberOrHexadecimalDigit(char c) {
+	static boolean isValidHexadecimalOrOctalOrBinaryDigit(char c) {
 		return (c >= '0' && c <= '9')
 				|| (c >= 'a' && c <= 'f') // Exponents also get covered within this range
 				|| (c >= 'A' && c <= 'F')
-				|| c == '.' // Decimal point
-				|| c == '+' // Possibly the sign of the exponent
-				|| c == '-'
 				|| c == '_'; // Spacing;
 	}
 
@@ -72,7 +69,7 @@ final class TokenizerImpl {
 		 */
 
 		// End of content.
-		if (cursor.remaining() == 0) {
+		if (cursor.remaining() <= 0) {
 			return null;
 		}
 
@@ -217,49 +214,6 @@ final class TokenizerImpl {
 				return token;
 			}
 
-			case '0':
-			case '1':
-			case '2':
-			case '3':
-			case '4':
-			case '5':
-			case '6':
-			case '7':
-			case '8':
-			case '9':
-			// "inf" and "nan" are handled as identifiers and interpreted at parse time.
-			{
-				if (cursor.remaining() <= 1) {
-					// Just an integer
-					Token token = new Token(1, Token.Type.NUMBER, cursor.line, cursor.column);
-
-					if (advanceCursor) {
-						cursor.advanceBy(1);
-					}
-
-					return token;
-				}
-
-				boolean firstCharacterIsZero = c == '0';
-
-				if (firstCharacterIsZero) {
-					// Try to parse encoding base
-					Character next = cursor.peekBy(1);
-					assert next != null;
-
-					if (isValidEncodingBaseOrNumberDigit(next)) {
-						throw new UnsupportedOperationException("TODO: Peek forward until the type of token changes.");
-					}
-
-					// fall-through since this is not a valid number.
-				} else {
-					// Parse till we no longer encounter numerical characters.
-					throw new UnsupportedOperationException("TODO");
-				}
-			}
-
-			// The number we were looking at is likely not a number, fall-through to tokenize as an identifier.
-
 			// Windows style line ending
 			case '\r': {
 				// There is another character following this `\r`, is it a `\n`?
@@ -285,6 +239,90 @@ final class TokenizerImpl {
 			// Fall-through on only a `\r` with no following `\n` to the default case.
 
 			default:
+				// "inf" and "nan" are handled as identifiers after this if block.
+				if (c >= '0' && c <= '9') {
+					// Try to parse numbers
+					if (cursor.remaining() <= 1) {
+						// Just an integer
+						Token token = new Token(1, Token.Type.NUMBER, cursor.line, cursor.column);
+
+						if (advanceCursor) {
+							cursor.advanceBy(1);
+						}
+
+						return token;
+					}
+
+					boolean firstCharacterIsZero = c == '0';
+
+					if (firstCharacterIsZero) {
+						// Try to parse encoding base
+						Character next = cursor.peekBy(1);
+						assert next != null;
+
+						if (isValidEncodingBaseOrNumberDigit(next)) {
+							// We have an encoding base with no value, return a number albeit an invalid one
+							if (cursor.remaining() == 2) {
+								Token token = new Token(2, Token.Type.NUMBER, cursor.line, cursor.column);
+
+								if (advanceCursor) {
+									cursor.advanceBy(2);
+								}
+
+								return token;
+							}
+
+							int length = 3;
+
+							while (cursor.remaining() >= length) {
+								next = cursor.peekBy(length - 1);
+								assert next != null;
+
+				 				if (!isValidHexadecimalOrOctalOrBinaryDigit(next)) {
+									// Have we reached the end of the token?
+									if (next == ' ' || next == '\t' || next == '\r' || next == '\n' || next == '#') {
+										Token token = new Token(length - 1, Token.Type.NUMBER, cursor.line, cursor.column);
+
+										if (advanceCursor) {
+											cursor.advanceBy(length - 1);
+										}
+
+										return token;
+									}
+
+									// exit since this is not a valid number.
+									break;
+								}
+
+								length++;
+							}
+
+							// Reached end of stream
+							if (cursor.remaining() - length <= 0) {
+								Character last = cursor.peekBy(length - 2);
+								assert last != null;
+
+								if (isValidHexadecimalOrOctalOrBinaryDigit(last)) {
+									Token token = new Token(length - 1, Token.Type.NUMBER, cursor.line, cursor.column);
+
+									if (advanceCursor) {
+										cursor.advanceBy(length);
+									}
+
+									return token;
+								}
+
+								// fall-through since this is not a valid number.
+							}
+						}
+					} else {
+						// Parse till we no longer encounter numerical characters.
+						throw new UnsupportedOperationException("TODO");
+					}
+				}
+
+				// The number we were looking at is likely not a number, fall-through to tokenize as an identifier.
+
 				// If we reach here, we have one of the following:
 				// Some sort of keyword, such as "import", "empty", "inf", "nan"
 				// An invalid number, such as a number with invalid characters.
