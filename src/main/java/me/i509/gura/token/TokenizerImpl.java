@@ -103,34 +103,60 @@ final class TokenizerImpl {
 			}
 
 			// Tab whitespace
-			case '\t':
-				throw new UnsupportedOperationException("TODO");
+			case '\t': {
+				int length = 1;
+
+				while (cursor.remaining() > length) {
+					Character next = cursor.peekBy(length);
+					assert next != null;
+
+					if (next != '\t') {
+						break;
+					}
+
+					length++;
+				}
+
+				Token token = new Token(length, Token.Type.TAB_WS, cursor.line, cursor.column);
+
+				if (advanceCursor) {
+					cursor.advanceBy(length);
+				}
+
+				return token;
+			}
 
 			// Open an array
 			case '[': {
+				Token token = new Token(1, Token.Type.LEFT_BRACKET, cursor.line, cursor.column);
+
 				if (advanceCursor) {
 					cursor.advanceBy(1);
 				}
 
-				return new Token(1, Token.Type.LEFT_BRACKET, cursor.line, cursor.column);
+				return token;
 			}
 
 			// Close an array
 			case ']': {
+				Token token = new Token(1, Token.Type.RIGHT_BRACKET, cursor.line, cursor.column);
+
 				if (advanceCursor) {
 					cursor.advanceBy(1);
 				}
 
-				return new Token(1, Token.Type.RIGHT_BRACKET, cursor.line, cursor.column);
+				return token;
 			}
 
 			// Comma separating entries in an array
 			case ',': {
+				Token token = new Token(1, Token.Type.COMMA, cursor.line, cursor.column);
+
 				if (advanceCursor) {
 					cursor.advanceBy(1);
 				}
 
-				return new Token(1, Token.Type.COMMA, cursor.line, cursor.column);
+				return token;
 			}
 
 			// Comment
@@ -149,7 +175,7 @@ final class TokenizerImpl {
 					length++;
 				}
 
-				Token token = new Token(length, Token.Type.COMMA, cursor.line, cursor.column);
+				Token token = new Token(length, Token.Type.COMMENT, cursor.line, cursor.column);
 
 				if (advanceCursor) {
 					cursor.advanceBy(length);

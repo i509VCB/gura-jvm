@@ -182,3 +182,175 @@ final class NumbersWithoutSign {
 		assertEquals(expected, Token.tokenize("0x").tokens());
 	}
 }
+
+final class Whitespace {
+	@Test
+	public void emptyInput() {
+		var expected = List.of();
+
+		assertEquals(expected, Token.tokenize("").tokens());
+	}
+
+	@Test
+	public void oneSpace() {
+		var expected = List.of(
+				new Token(1, Token.Type.SPACE_WS, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize(" ").tokens());
+	}
+
+	@Test
+	public void spaceNewLineSpace() {
+		var expected = List.of(
+				new Token(1, Token.Type.SPACE_WS, 1, 1),
+				new Token(1, Token.Type.NEWLINE, 1, 2),
+				new Token(1, Token.Type.SPACE_WS, 2, 1)
+		);
+
+		assertEquals(expected, Token.tokenize(" \n ").tokens());
+	}
+
+	@Test
+	public void fourSpace() {
+		var expected = List.of(
+				new Token(4, Token.Type.SPACE_WS, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("    ").tokens());
+	}
+
+	@Test
+	public void oneTab() {
+		var expected = List.of(
+				new Token(1, Token.Type.TAB_WS, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("\t").tokens());
+	}
+
+	@Test
+	public void oneTabThenSpace() {
+		var expected = List.of(
+				new Token(1, Token.Type.TAB_WS, 1, 1),
+				new Token(1, Token.Type.SPACE_WS, 1, 2)
+		);
+
+		assertEquals(expected, Token.tokenize("\t ").tokens());
+	}
+}
+
+final class Comments {
+	@Test
+	public void onlyComment() {
+		var expected = List.of(
+				new Token(1, Token.Type.COMMENT, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("#").tokens());
+	}
+
+	@Test
+	public void twoCommentSymbolsOnlyOneComment() {
+		var expected = List.of(
+				new Token(3, Token.Type.COMMENT, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("##a").tokens());
+	}
+
+	@Test
+	public void endOfLineComment() {
+		var expected = List.of(
+				new Token(4, Token.Type.NUMBER, 1, 1),
+				new Token(1, Token.Type.SPACE_WS, 1, 5),
+				new Token(3, Token.Type.COMMENT, 1, 6)
+		);
+
+		assertEquals(expected, Token.tokenize("0xFF ##a").tokens());
+	}
+
+	@Test
+	public void commentThenNewline() {
+		var expected = List.of(
+				new Token(14, Token.Type.COMMENT, 1, 1),
+				new Token(1, Token.Type.NEWLINE, 1, 15)
+		);
+
+		assertEquals(expected, Token.tokenize("# some comment\n").tokens());
+	}
+
+	@Test
+	public void commentThenNewlineThenComment() {
+		var expected = List.of(
+				new Token(14, Token.Type.COMMENT, 1, 1),
+				new Token(1, Token.Type.NEWLINE, 1, 15),
+				new Token(17, Token.Type.COMMENT, 2, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("# some comment\n# another comment").tokens());
+	}
+
+	@Test
+	public void commentThenNewlineWindows() {
+		var expected = List.of(
+				new Token(14, Token.Type.COMMENT, 1, 1),
+				new Token(2, Token.Type.NEWLINE, 1, 15)
+		);
+
+		assertEquals(expected, Token.tokenize("# some comment\r\n").tokens());
+	}
+}
+
+final class Arrays {
+	@Test
+	public void tenCommas() {
+		var expected = List.of(
+				new Token(1, Token.Type.COMMA, 1, 1),
+				new Token(1, Token.Type.COMMA, 1, 2),
+				new Token(1, Token.Type.COMMA, 1, 3),
+				new Token(1, Token.Type.COMMA, 1, 4),
+				new Token(1, Token.Type.COMMA, 1, 5),
+				new Token(1, Token.Type.COMMA, 1, 6),
+				new Token(1, Token.Type.COMMA, 1, 7),
+				new Token(1, Token.Type.COMMA, 1, 8),
+				new Token(1, Token.Type.COMMA, 1, 9),
+				new Token(1, Token.Type.COMMA, 1, 10)
+		);
+
+		assertEquals(expected, Token.tokenize(",,,,,,,,,,").tokens());
+	}
+
+	@Test
+	public void unclosedEmptyArray() {
+		var expected = List.of(
+				new Token(1, Token.Type.LEFT_BRACKET, 1, 1),
+				new Token(1, Token.Type.SPACE_WS, 1, 2)
+		);
+
+		assertEquals(expected, Token.tokenize("[ ").tokens());
+	}
+
+	@Test
+	public void closedEmptyArray() {
+		var expected = List.of(
+				new Token(1, Token.Type.LEFT_BRACKET, 1, 1),
+				new Token(1, Token.Type.SPACE_WS, 1, 2),
+				new Token(1, Token.Type.RIGHT_BRACKET, 1, 3)
+		);
+
+		assertEquals(expected, Token.tokenize("[ ]").tokens());
+	}
+
+	@Test
+	public void openTwiceAndCloseArray() {
+		var expected = List.of(
+				new Token(1, Token.Type.LEFT_BRACKET, 1, 1),
+				new Token(1, Token.Type.LEFT_BRACKET, 1, 2),
+				new Token(1, Token.Type.RIGHT_BRACKET, 1, 3),
+				new Token(1, Token.Type.RIGHT_BRACKET, 1, 4)
+		);
+
+		assertEquals(expected, Token.tokenize("[[]]").tokens());
+	}
+}
