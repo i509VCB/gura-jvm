@@ -26,6 +26,18 @@ final class TokenizerImpl {
 
 	/**
 	 * @param c the character
+	 * @return true if the character may be part of the digits of a number
+	 */
+	static boolean isValidNumberDigit(char c) {
+		return (c >= '0' && c <= '9')
+				|| c == 'e' // Exponent
+				|| c == 'E' // 0e6 is a redundant but still valid floating point value
+				|| c == '.' // Decimal point
+				|| c == '_'; // Spacing
+	}
+
+	/**
+	 * @param c the character
 	 * @return true if the character may be part of the encoding base or digits of a number
 	 */
 	static boolean isValidEncodingBaseOrNumberDigit(char c) {
@@ -281,11 +293,11 @@ final class TokenizerImpl {
 
 					boolean firstCharacterIsZero = c == '0';
 
+					Character next = cursor.peekBy(1);
+					assert next != null;
+
 					if (firstCharacterIsZero) {
 						// Try to parse encoding base
-						Character next = cursor.peekBy(1);
-						assert next != null;
-
 						if (isValidEncodingBaseOrNumberDigit(next)) {
 							// We have an encoding base with no value, return a number albeit an invalid one
 							if (cursor.remaining() == 2) {
@@ -342,8 +354,50 @@ final class TokenizerImpl {
 							}
 						}
 					} else {
-						// Parse till we no longer encounter numerical characters.
-						throw new UnsupportedOperationException("TODO");
+						if (isValidNumberDigit(next)) {
+							int length = 2;
+
+							while (cursor.remaining() >= length) {
+								next = cursor.peekBy(length - 1);
+								assert next != null;
+
+								if (!isValidNumberDigit(next)) {
+									// Have we reached the end of the token?
+									if (next == ' ' || next == '\t' || next == '\r' || next == '\n' || next == '#') {
+										Token token = new Token(length - 1, Token.Type.NUMBER, cursor.line, cursor.column);
+
+										if (advanceCursor) {
+											cursor.advanceBy(length - 1);
+										}
+
+										return token;
+									}
+
+									// exit since this is not a valid number.
+									break;
+								}
+
+								length++;
+							}
+
+							// Reached end of stream
+							if (cursor.remaining() - length <= 0) {
+								Character last = cursor.peekBy(length - 2);
+								assert last != null;
+
+								if (isValidNumberDigit(last)) {
+									Token token = new Token(length - 1, Token.Type.NUMBER, cursor.line, cursor.column);
+
+									if (advanceCursor) {
+										cursor.advanceBy(length);
+									}
+
+									return token;
+								}
+
+								// fall-through since this is not a valid number.
+							}
+						}
 					}
 				}
 
@@ -365,6 +419,8 @@ final class TokenizerImpl {
 				int column = cursor.column;
 
 				Token nextToken;
+
+				// TODO: Avoid as much recursion
 
 				// do while loop here is intentional since we want to advance the cursor and then check the exit condition
 				do {

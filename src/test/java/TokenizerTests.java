@@ -55,13 +55,13 @@ final class KeyAndValue {
 		assertEquals(expected, Token.tokenize("$key: $value").tokens());
 	}
 
-	@Disabled("Not implemented")
 	@Test
 	public void variableKeyAndNumberValue() {
 		var expected = List.of(
-				new Token(16, Token.Type.IDENTIFIER, 1, 1),
-				new Token(1, Token.Type.SPACE_WS, 1, 17)
-				//new Token(2, Token.Type.VALUE_OR_IMPORT, 1, 18)
+				new Token(15, Token.Type.IDENTIFIER, 1, 1),
+				new Token(1, Token.Type.COLON, 1, 16),
+				new Token(1, Token.Type.SPACE_WS, 1, 17),
+				new Token(2, Token.Type.NUMBER, 1, 18)
 		);
 
 		assertEquals(expected, Token.tokenize("meaning_of_life: 42").tokens());
@@ -89,12 +89,11 @@ final class NumbersWithSign {
 		assertEquals(expected, Token.tokenize("-0").tokens());
 	}
 
-	@Disabled("Not implemented")
 	@Test
 	public void positiveSignedNumber() {
 		var expected = List.of(
 				new Token(1, Token.Type.PLUS, 1, 1),
-				new Token(3, Token.Type.NUMBER, 1, 2)
+				new Token(2, Token.Type.NUMBER, 1, 2)
 		);
 
 		assertEquals(expected, Token.tokenize("+42").tokens());
@@ -157,7 +156,6 @@ final class NumbersWithoutSign {
 		assertEquals(expected, Token.tokenize("0b1001").tokens());
 	}
 
-	@Disabled("Plain numbers not implemented yet")
 	@Test
 	public void fiveHundredAndNine() {
 		var expected = List.of(
@@ -165,6 +163,25 @@ final class NumbersWithoutSign {
 		);
 
 		assertEquals(expected, Token.tokenize("509").tokens());
+	}
+
+	@Test
+	public void fourtyTwo() {
+		var expected = List.of(
+				new Token(2, Token.Type.NUMBER, 1, 1)
+		);
+
+		assertEquals(expected, Token.tokenize("42").tokens());
+	}
+
+	@Test
+	public void fourtyTwoFollowedByWs() {
+		var expected = List.of(
+				new Token(2, Token.Type.NUMBER, 1, 1),
+				new Token(1, Token.Type.SPACE_WS, 1, 3)
+		);
+
+		assertEquals(expected, Token.tokenize("42 ").tokens());
 	}
 
 	/**
