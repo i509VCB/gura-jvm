@@ -3,6 +3,8 @@ package me.i509.gura.token;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * Implementation of the Gura tokenizer.
  */
@@ -71,7 +73,7 @@ final class TokenizerImpl {
 	 * @param advanceCursor whether the cursor should be advanced after obtaining a token
 	 * @return the next token or null
 	 */
-	// TODO: Nullable
+	@Nullable
 	static Token nextToken(Cursor cursor, boolean advanceCursor) {
 		/*
 		 * Tokenizing occurs in a two steps:

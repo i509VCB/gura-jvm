@@ -6,6 +6,5 @@
  */
 module gura.jvm {
 	requires java.base;
-
-	exports me.i509.gura.token;
+	requires org.jetbrains.annotations;
 }
